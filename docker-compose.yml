@@ -1,0 +1,103 @@
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: heltonmachado_app
+    restart: unless-stopped
+    environment:
+      APP_NAME: "Assistência Técnica"
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_KEY: ${APP_KEY:-}
+      APP_URL: http://localhost:8000
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: assistencia
+      DB_USERNAME: assistencia
+      DB_PASSWORD: ${DB_PASSWORD:?Configure DB_PASSWORD no arquivo .env}
+      ADMIN_NAME: ${ADMIN_NAME:-Helton Machado}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Configure ADMIN_EMAIL no arquivo .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Configure ADMIN_PASSWORD no arquivo .env}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - app_storage:/var/www/html/storage/app/private
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8000/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - assistencia
+
+  mysql:
+    image: mysql:8.0
+    container_name: heltonmachado_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: assistencia
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Configure DB_ROOT_PASSWORD no arquivo .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Configure DB_PASSWORD no arquivo .env}
+      MYSQL_USER: assistencia
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --protocol=TCP --user=$$MYSQL_USER --password=$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - assistencia
+
+  redis:
+    image: redis:7-alpine
+    container_name: heltonmachado_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - assistencia
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000/api
+    container_name: heltonmachado_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - assistencia
+
+volumes:
+  mysql_data:
+  app_storage:
+
+networks:
+  assistencia:
+    driver: bridge

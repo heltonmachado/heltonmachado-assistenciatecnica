@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+node_modules/
+vendor/
+dist/
+*.sqlite
+*.sqlite-*
+*.log
+/package-lock.json
+/assistencia_tecnica_completa_heltonmachado_agentic_artifact_4_655aaeef7116.html
+/heltonmachado_glpi_seap_agentic_artifact_3_14c3a6d079e4.html
+/heltonmachado_hitss_agentic_artifact_2_5ddd45f257eb.html
+/backend/storage/app/private/
